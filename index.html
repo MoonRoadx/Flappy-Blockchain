@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0f172a">
+    <title>Flappy CZ 💰</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            touch-action: none;
+            position: fixed;
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+        }
+        #app {
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+        }
+        canvas {
+            display: block;
+            width: 100% !important;
+            height: auto !important;
+            max-height: 70vh;
+            border-radius: 0;
+        }
+        .game-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+        <div class="py-3 px-4 text-center bg-black/20">
+            <h1 class="text-3xl font-bold mb-1 bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+                Flappy CZ 💰
+            </h1>
+            <div class="flex items-center justify-center gap-3 text-white text-sm">
+                <div class="flex items-center gap-1">
+                    <span class="text-lg">🏆</span>
+                    <span class="font-bold">Record: <span id="highScore">0</span></span>
+                </div>
+                <button id="soundBtn" class="p-2 bg-white/10 rounded-lg active:bg-white/30 transition-colors">
+                    <span id="soundIcon" class="text-xl">🔊</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="game-container">
+            <canvas id="gameCanvas" width="800" height="600" 
+                    class="border-y-4 border-green-400/30 shadow-2xl bg-sky-400 touch-none">
+            </canvas>
+
+            <!-- Menu overlay -->
+            <div id="menuOverlay" class="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center">
+                <div class="text-center space-y-4 p-4 w-full">
+                    <h2 class="text-3xl font-bold text-white mb-2">
+                        Prêt à voler ? 🚀
+                    </h2>
+                    
+                    <!-- Difficulty selector -->
+                    <div class="space-y-2">
+                        <p class="text-white font-semibold">Difficulté :</p>
+                        <div class="flex gap-2 justify-center">
+                            <button onclick="setDifficulty('easy')" id="easyBtn" 
+                                    class="difficulty-btn px-4 py-2 rounded-lg font-bold text-sm transition-all bg-gradient-to-r from-green-400 to-green-600 text-white shadow-lg">
+                                😊 Facile
+                            </button>
+                            <button onclick="setDifficulty('normal')" id="normalBtn" 
+                                    class="difficulty-btn px-4 py-2 rounded-lg font-bold text-sm transition-all bg-white/10 text-gray-300">
+                                ⚖️ Normal
+                            </button>
+                            <button onclick="setDifficulty('hard')" id="hardBtn" 
+                                    class="difficulty-btn px-4 py-2 rounded-lg font-bold text-sm transition-all bg-white/10 text-gray-300">
+                                🔥 Difficile
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="text-white text-sm space-y-1 py-2">
+                        <p>📱 Tapez l'écran pour sauter</p>
+                        <p class="text-green-400">10 points par tuyau ! 💯</p>
+                    </div>
+                    <button id="startBtn" class="flex items-center gap-2 mx-auto px-8 py-3 bg-gradient-to-r from-green-400 to-emerald-500 text-white font-bold text-lg rounded-xl active:scale-95 transition-transform shadow-lg">
+                        ▶ Commencer
+                    </button>
+                </div>
+            </div>
+
+            <!-- Game Over overlay -->
+            <div id="gameOverOverlay" class="absolute inset-0 bg-black/70 backdrop-blur-sm flex-col items-center justify-center hidden">
+                <div class="text-center space-y-4 p-6 bg-white/10 rounded-2xl border-2 border-red-400/50 mx-4">
+                    <h2 class="text-3xl font-bold text-red-400">Game Over! 💥</h2>
+                    <div class="text-white text-xl space-y-2">
+                        <p id="difficultyBadge" class="px-3 py-1 rounded-lg inline-block text-base">😊 Facile</p>
+                        <p class="font-bold text-2xl">Score: <span id="finalScore">0</span></p>
+                        <p class="text-yellow-400 flex items-center justify-center gap-2">
+                            🏆 Record: <span id="finalHighScore">0</span>
+                        </p>
+                    </div>
+                    <button id="restartBtn" class="flex items-center gap-2 mx-auto px-8 py-3 bg-gradient-to-r from-green-400 to-emerald-500 text-white font-bold text-lg rounded-xl active:scale-95 transition-transform shadow-lg">
+                        🔄 Rejouer
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="py-3 text-center text-white/60 text-xs px-4 bg-black/20">
+            <p>Évitez les tuyaux ! 🎮</p>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const menuOverlay = document.getElementById('menuOverlay');
+        const gameOverOverlay = document.getElementById('gameOverOverlay');
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const soundBtn = document.getElementById('soundBtn');
+        const soundIcon = document.getElementById('soundIcon');
+        const highScoreEl = document.getElementById('highScore');
+        const finalScoreEl = document.getElementById('finalScore');
+        const finalHighScoreEl = document.getElementById('finalHighScore');
+        const difficultyBadge = document.getElementById('difficultyBadge');
+
+        // Load character image
+        const characterImg = new Image();
+        characterImg.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0MCIgZmlsbD0iIzIyYzU1ZSIvPjwvc3ZnPg==';
+
+        // Particles system
+        let particles = [];
+
+        function createParticles(x, y) {
+            for (let i = 0; i < 10; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: (Math.random() - 0.5) * 4,
+                    life: 30,
+                    color: `hsl(${Math.random() * 60 + 100}, 70%, 60%)`
+                });
+            }
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.1;
+                p.life--;
+                
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                } else {
+                    ctx.globalAlpha = p.life / 30;
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        // Background themes
+        const backgrounds = {
+            day: { sky1: '#0ea5e9', sky2: '#0284c7', cloud: 'rgba(255, 255, 255, 0.3)' },
+            sunset: { sky1: '#f97316', sky2: '#dc2626', cloud: 'rgba(255, 200, 150, 0.4)' },
+            night: { sky1: '#1e3a8a', sky2: '#0f172a', cloud: 'rgba(200, 200, 255, 0.2)' }
+        };
+        let currentBg = 'day';
+
+        // Audio context
+        let audioContext = null;
+        let soundEnabled = true;
+
+        // Initialize audio on user interaction
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        // Play sound
+        function playSound(type) {
+            if (!soundEnabled || !audioContext) return;
+
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            if (type === 'jump') {
+                oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+            } else if (type === 'score') {
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+            } else if (type === 'gameOver') {
+                oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.3);
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+            }
+        }
+
+        // Toggle sound
+        soundBtn.addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            soundIcon.textContent = soundEnabled ? '🔊' : '🔇';
+        });
+
+        // Difficulty settings
+        const difficulties = {
+            easy: {
+                gravity: 0.4,
+                jumpStrength: -9,
+                pipeGap: 280,
+                pipeSpeed: 2.5,
+                pipeSpacing: 450,
+                name: '😊 Facile',
+                color: 'from-green-400 to-green-600'
+            },
+            normal: {
+                gravity: 0.5,
+                jumpStrength: -10,
+                pipeGap: 250,
+                pipeSpeed: 3,
+                pipeSpacing: 400,
+                name: '⚖️ Normal',
+                color: 'from-blue-400 to-blue-600'
+            },
+            hard: {
+                gravity: 0.6,
+                jumpStrength: -11,
+                pipeGap: 220,
+                pipeSpeed: 3.5,
+                pipeSpacing: 350,
+                name: '🔥 Difficile',
+                color: 'from-red-400 to-red-600'
+            }
+        };
+
+        let currentDifficulty = 'easy';
+
+        // Set difficulty
+        function setDifficulty(diff) {
+            currentDifficulty = diff;
+            
+            // Update button styles
+            document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                btn.className = 'difficulty-btn px-6 py-3 rounded-xl font-bold transition-all bg-white/10 text-gray-300 hover:bg-white/20';
+            });
+            
+            const selectedBtn = document.getElementById(diff + 'Btn');
+            selectedBtn.className = `difficulty-btn px-6 py-3 rounded-xl font-bold transition-all bg-gradient-to-r ${difficulties[diff].color} text-white scale-110 shadow-lg`;
+        }
+
+        // Game constants
+        const PIPE_WIDTH = 80;
+        const CHARACTER_SIZE = 60;
+
+        // Game state
+        let gameState = 'menu';
+        let bird = { y: 250, velocity: 0, x: 100 };
+        let pipes = [];
+        let score = 0;
+        let highScore = 0;
+        let animationId;
+
+        // Initialize game
+        function initGame() {
+            const settings = difficulties[currentDifficulty];
+            bird = { y: 250, velocity: 0, x: 100 };
+            pipes = [
+                { x: 600, topHeight: 150, passed: false },
+                { x: 600 + settings.pipeSpacing, topHeight: 200, passed: false },
+                { x: 600 + settings.pipeSpacing * 2, topHeight: 100, passed: false }
+            ];
+            score = 0;
+        }
+
+        // Jump
+        function jump() {
+            initAudio();
+            
+            if (gameState === 'menu') {
+                gameState = 'playing';
+                menuOverlay.style.display = 'none';
+                initGame();
+                playSound('jump');
+            } else if (gameState === 'playing') {
+                bird.velocity = difficulties[currentDifficulty].jumpStrength;
+                playSound('jump');
+            } else if (gameState === 'gameOver') {
+                gameState = 'playing';
+                gameOverOverlay.style.display = 'none';
+                initGame();
+                playSound('jump');
+            }
+        }
+
+        // Check collision
+        function checkCollision() {
+            const settings = difficulties[currentDifficulty];
+            
+            if (bird.y + CHARACTER_SIZE > canvas.height || bird.y < 0) {
+                return true;
+            }
+
+            const hitboxSize = CHARACTER_SIZE * 0.7;
+            const hitboxOffset = CHARACTER_SIZE * 0.15;
+
+            for (let pipe of pipes) {
+                const birdRight = bird.x + hitboxSize + hitboxOffset;
+                const birdBottom = bird.y + hitboxSize + hitboxOffset;
+                const pipeRight = pipe.x + PIPE_WIDTH;
+
+                if (birdRight > pipe.x && bird.x + hitboxOffset < pipeRight) {
+                    if (bird.y + hitboxOffset < pipe.topHeight || birdBottom > pipe.topHeight + settings.pipeGap) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // Draw character
+        function drawCharacter() {
+            ctx.save();
+            ctx.translate(bird.x + CHARACTER_SIZE / 2, bird.y + CHARACTER_SIZE / 2);
+            
+            const rotation = Math.min(Math.max(bird.velocity * 0.03, -0.3), 0.3);
+            ctx.rotate(rotation);
+
+            // Body
+            ctx.fillStyle = '#22c55e';
+            ctx.beginPath();
+            ctx.roundRect(-CHARACTER_SIZE/2.5, -CHARACTER_SIZE/3, CHARACTER_SIZE/1.2, CHARACTER_SIZE/1.1, 8);
+            ctx.fill();
+            
+            // Hood
+            ctx.beginPath();
+            ctx.ellipse(0, -CHARACTER_SIZE/3, CHARACTER_SIZE/3, CHARACTER_SIZE/2.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Face
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.ellipse(0, -CHARACTER_SIZE/4, CHARACTER_SIZE/4, CHARACTER_SIZE/3.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Eyes
+            ctx.fillStyle = '#0ff';
+            ctx.shadowColor = '#0ff';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.ellipse(-8, -CHARACTER_SIZE/3.5, 6, 3, -0.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(8, -CHARACTER_SIZE/3.5, 6, 3, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            
+            // Chain
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(0, -CHARACTER_SIZE/8, 12, 0, Math.PI);
+            ctx.stroke();
+            
+            // Text
+            ctx.fillStyle = '#fbbf24';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('$555', 0, CHARACTER_SIZE/6);
+            
+            // Legs
+            ctx.fillStyle = '#1e3a8a';
+            ctx.fillRect(-12, CHARACTER_SIZE/3, 8, 15);
+            ctx.fillRect(4, CHARACTER_SIZE/3, 8, 15);
+            
+            // Shoes
+            ctx.fillStyle = '#0ea5e9';
+            ctx.fillRect(-14, CHARACTER_SIZE/2.3, 10, 6);
+            ctx.fillRect(4, CHARACTER_SIZE/2.3, 10, 6);
+
+            ctx.restore();
+        }
+
+        // Game loop
+        function gameLoop() {
+            const settings = difficulties[currentDifficulty];
+            
+            // Clear canvas
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#0ea5e9');
+            gradient.addColorStop(1, '#0284c7');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (gameState === 'playing') {
+                // Update bird
+                bird.velocity += settings.gravity;
+                bird.y += bird.velocity;
+
+                // Update pipes
+                for (let i = pipes.length - 1; i >= 0; i--) {
+                    pipes[i].x -= settings.pipeSpeed;
+
+                    // Score
+                    if (!pipes[i].passed && bird.x > pipes[i].x + PIPE_WIDTH) {
+                        pipes[i].passed = true;
+                        score += 10;
+                        playSound('score');
+                        if (score > highScore) {
+                            highScore = score;
+                            highScoreEl.textContent = highScore;
+                        }
+                    }
+
+                    // Remove and add pipes
+                    if (pipes[i].x + PIPE_WIDTH < 0) {
+                        pipes.splice(i, 1);
+                        const lastPipe = pipes[pipes.length - 1];
+                        pipes.push({
+                            x: lastPipe.x + settings.pipeSpacing,
+                            topHeight: Math.random() * 200 + 50,
+                            passed: false
+                        });
+                    }
+                }
+
+                // Collision
+                if (checkCollision()) {
+                    gameState = 'gameOver';
+                    playSound('gameOver');
+                    finalScoreEl.textContent = score;
+                    finalHighScoreEl.textContent = highScore;
+                    difficultyBadge.textContent = difficulties[currentDifficulty].name;
+                    difficultyBadge.className = `px-4 py-2 rounded-lg inline-block text-lg bg-gradient-to-r ${difficulties[currentDifficulty].color}`;
+                    gameOverOverlay.style.display = 'flex';
+                }
+            }
+
+            // Draw pipes
+            pipes.forEach(pipe => {
+                const settings = difficulties[currentDifficulty];
+                const topGradient = ctx.createLinearGradient(pipe.x, 0, pipe.x + PIPE_WIDTH, 0);
+                topGradient.addColorStop(0, '#16a34a');
+                topGradient.addColorStop(0.5, '#22c55e');
+                topGradient.addColorStop(1, '#16a34a');
+                
+                ctx.fillStyle = topGradient;
+                ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.topHeight);
+                ctx.strokeStyle = '#15803d';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(pipe.x, 0, PIPE_WIDTH, pipe.topHeight);
+
+                const bottomY = pipe.topHeight + settings.pipeGap;
+                ctx.fillStyle = topGradient;
+                ctx.fillRect(pipe.x, bottomY, PIPE_WIDTH, canvas.height - bottomY);
+                ctx.strokeStyle = '#15803d';
+                ctx.strokeRect(pipe.x, bottomY, PIPE_WIDTH, canvas.height - bottomY);
+
+                ctx.fillStyle = '#15803d';
+                ctx.fillRect(pipe.x - 5, pipe.topHeight - 30, PIPE_WIDTH + 10, 30);
+                ctx.fillRect(pipe.x - 5, bottomY, PIPE_WIDTH + 10, 30);
+            });
+
+            // Draw character
+            drawCharacter();
+
+            // Draw score
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 48px Arial';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 10;
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 4;
+            ctx.strokeText(score, canvas.width / 2, 80);
+            ctx.fillText(score, canvas.width / 2, 80);
+            ctx.shadowBlur = 0;
+
+            animationId = requestAnimationFrame(gameLoop);
+        }
+
+        // Event listeners
+        canvas.addEventListener('click', jump);
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            jump();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                e.preventDefault();
+                jump();
+            }
+        });
+
+        startBtn.addEventListener('click', jump);
+        restartBtn.addEventListener('click', jump);
+
+        // Make setDifficulty global
+        window.setDifficulty = setDifficulty;
+
+        // Start game loop
+        gameLoop();
+    </script>
+</body>
+</html>
