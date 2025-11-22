@@ -1,0 +1,16 @@
+{
+  "name": "flappy-cz-api",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "@solana/web3.js": "^1.87.6",
+    "bs58": "^5.0.0",
+    "tweetnacl": "^1.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1"
+  }
+}
