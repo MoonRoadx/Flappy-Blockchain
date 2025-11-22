@@ -2,7 +2,7 @@
 const { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } = solanaWeb3;
 
 // ⚠️ À MODIFIER APRÈS DÉPLOIEMENT BACKEND
-const BACKEND_API = "https://VOTRE-PROJET.railway.app"; // <-- CHANGEZ CECI PLUS TARD
+const BACKEND_API = "https://flappy-blockchain.onrender.com"; // <-- CHANGEZ CECI PLUS TARD
 
 // State
 let walletConnected = false;
